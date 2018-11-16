@@ -13,12 +13,15 @@ knitr::opts_chunk$set(
   out.width = "90%"
 )
 
+library(MASS)
 library(tidyverse)
+
 
 theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
 
 ### Problem 1
+
 This problem utilizes data from _The Washington Post_ on homicides in 50 U.S. cities. The code chunk below imports and cleans the data. I referred to the posted solution of Homework 5, Problem 2 for some of the data cleaning code structure and naming conventions.
 
 ```{r}
@@ -26,18 +29,48 @@ homicide_df <-
   read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
   mutate(
     city_state = str_c(city, state, sep = ", "),
-    resolution = case_when(
+    resolution = factor(case_when(
       disposition == "Closed without arrest" ~ "unsolved",
       disposition == "Open/No arrest"        ~ "unsolved",
       disposition == "Closed by arrest"      ~ "solved"
-    ),
-    victim_race = case_when(
+    )),
+    victim_race = factor(case_when(
       victim_race == "White" ~ "white",
       victim_race != "white" ~ "non-white"
-    ),
-    victim_age = as.numeric(victim_age)) %>% 
+    )),
+    victim_race = fct_relevel(victim_race, "white"),
+    victim_age = as.numeric(victim_age),
+    victim_sex = factor(victim_sex)) %>% 
   filter(!city_state %in% c("Tulsa, AL", "Dallas, TX", "Phoenix, AZ", "Kansas City, MO")) 
 ```
+
+I excluded cities that do not report race as well as a data entry error ("Tulsa, AL").
+
+For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors. Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing black victims to white victims keeping all other variables fixed.
+
+```{r}
+
+fit_logistic <- 
+  homicide_df %>% 
+    filter(city_state == "Baltimore, MD") %>% 
+    select(resolution, victim_age, victim_race, victim_sex) %>% 
+    glm(resolution ~ victim_age + victim_race + victim_sex, data = ., family = binomial()) 
+
+```
+
+```{r}
+
+broom::tidy(fit_logistic, conf.int = TRUE) %>% 
+  mutate(OR = exp(estimate),
+         conf_low_OR = exp(conf.low),
+         conf_high_OR = exp(conf.high)) %>%
+  select(term, log_OR = estimate, OR, conf_low_OR, conf_high_OR) %>% 
+  knitr::kable(digits = 3)
+
+
+```
+
+
 
 
 
