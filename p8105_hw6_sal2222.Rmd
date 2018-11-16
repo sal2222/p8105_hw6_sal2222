@@ -1,0 +1,66 @@
+---
+title: "p8105_hw6_sal2222"
+author: "Stephen Lewandowski"
+date: "November 16, 2018"
+output:  github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+library(tidyverse)
+
+theme_set(theme_bw() + theme(legend.position = "bottom"))
+```
+
+### Problem 1
+This problem utilizes data from _The Washington Post_ on homicides in 50 U.S. cities. The code chunk below imports and cleans the data. I referred to the posted solution of Homework 5, Problem 2 for some of the data cleaning code structure and naming conventions.
+
+```{r}
+homicide_df <- 
+  read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
+  mutate(
+    city_state = str_c(city, state, sep = ", "),
+    resolution = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest"        ~ "unsolved",
+      disposition == "Closed by arrest"      ~ "solved"
+    ),
+    victim_race = case_when(
+      victim_race == "White" ~ "white",
+      victim_race != "white" ~ "non-white"
+    ),
+    victim_age = as.numeric(victim_age)) %>% 
+  filter(!city_state %in% c("Tulsa, AL", "Dallas, TX", "Phoenix, AZ", "Kansas City, MO")) 
+```
+
+
+
+In the next code chunk, I group within cities and summarize to produce the total number of homicides and the number that are solved. 
+
+```{r}
+city_homicide_df = 
+  homicide_df %>% 
+  select(city_state, disposition, resolution) %>% 
+  group_by(city_state) %>% 
+  summarize(hom_total = n(),
+            hom_unsolved = sum(resolution == "unsolved"))
+```
+
+Focusing only on Baltimore, MD, I can use the `prop.test` and `broom::tidy` functions to obtain an estimate and CI of the proportion of unsolved homicides in that city. The table below shows those values.
+
+```{r}
+bmore_test = 
+  prop.test(x = filter(city_homicide_df, city_state == "Baltimore, MD") %>% pull(hom_unsolved),
+            n = filter(city_homicide_df, city_state == "Baltimore, MD") %>% pull(hom_total)) 
+
+broom::tidy(bmore_test) %>% 
+  knitr::kable(digits = 3)
+```
+
+
