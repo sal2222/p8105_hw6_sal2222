@@ -20,7 +20,7 @@ library(tidyverse)
 theme_set(theme_bw() + theme(legend.position = "bottom"))
 ```
 
-### Problem 1
+### Problem 1 - Homicide data
 
 This problem utilizes data from _The Washington Post_ on homicides in 50 U.S. cities. The code chunk below imports and cleans the data. I referred to the posted solution of Homework 5, Problem 2 for some of the data cleaning code structure and naming conventions.
 
@@ -97,3 +97,52 @@ broom::tidy(bmore_test) %>%
 ```
 
 
+
+### Problem 2 - Birthweight data
+
+I will now load and clean birthweight data for 4,342 children for regression analysis.
+
+```{r}
+birthweight_df <- 
+  read_csv("data/birthweight.csv") %>% 
+  mutate(
+      babysex = factor(babysex),
+      frace = factor(frace),
+      malform = factor(malform),
+      mrace = factor(mrace)
+  )
+```
+
+There is no missing data.
+
+```{r birthweight_na_check}
+birthweight_df %>% 
+  is.na() %>% summary()
+
+```
+
+## Proposed regression model for birthweight
+
+
+
+
+## Model comparison
+
+```{r blength_gestage_model}
+lm(bwt ~ blength + gaweeks, data = birthweight_df) %>% broom::tidy()
+
+
+```
+
+
+```{r head_length_sex_interaction_model}
+
+lm(bwt ~ bhead + blength + babysex + (bhead * blength) + (blength * babysex) + (bhead * babysex) +
+     (bhead * blength * babysex), data = birthweight_df) %>% 
+      broom::tidy()
+
+```
+
+
+
+Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
