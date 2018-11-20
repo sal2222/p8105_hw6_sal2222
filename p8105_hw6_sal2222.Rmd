@@ -24,7 +24,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 
 This problem utilizes data from _The Washington Post_ on homicides in 50 U.S. cities. The code chunk below imports and cleans the data. I referred to the posted solution of Homework 5, Problem 2 for some of the data cleaning code structure and naming conventions.
 
-```{r}
+```{r clean_homicide}
 homicide_df <- 
   read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
   mutate(
@@ -46,53 +46,62 @@ homicide_df <-
 
 I excluded cities that do not report race as well as a data entry error ("Tulsa, AL").
 
-For the city of Baltimore, MD, use the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race (as just defined) as predictors. Save the output of glm as an R object; apply the broom::tidy to this object; and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing black victims to white victims keeping all other variables fixed.
+## Baltimore model
 
-```{r}
+For the city of Baltimore, MD, I will the glm function to fit a logistic regression with resolved vs unresolved as the outcome and victim age, sex and race as predictors. The output is saved as R object `fit_logistic`. 
 
-fit_logistic <- 
+```{r glm_baltimore}
+
+fit_logistic_baltimore <- 
   homicide_df %>% 
     filter(city_state == "Baltimore, MD") %>% 
-    select(resolution, victim_age, victim_race, victim_sex) %>% 
+    dplyr::select(resolution, victim_age, victim_race, victim_sex) %>% 
     glm(resolution ~ victim_age + victim_race + victim_sex, data = ., family = binomial()) 
 
 ```
 
-```{r}
+I will apply `broom::tidy` to `fit_logistic` and obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing no n-white victims to white victims keeping all other variables fixed.
 
-broom::tidy(fit_logistic, conf.int = TRUE) %>% 
+```{r broom_baltimore}
+
+broom::tidy(fit_logistic_baltimore, conf.int = TRUE) %>% 
   mutate(OR = exp(estimate),
          conf_low_OR = exp(conf.low),
          conf_high_OR = exp(conf.high)) %>%
-  select(term, log_OR = estimate, OR, conf_low_OR, conf_high_OR) %>% 
+  dplyr::select(term, OR, conf_low_OR, conf_high_OR) %>%
+  filter(term == "victim_racenon-white") %>% 
   knitr::kable(digits = 3)
 
 
 ```
 
+## All cities
+
+Now, I will run a glm for each of the cities in my dataset and extract the adjusted odds ratio and CI for solving homicides comparing non-white victims to white victims within a “tidy” pipeline.
 
 
+```{r glm_all_cities}
 
-
-In the next code chunk, I group within cities and summarize to produce the total number of homicides and the number that are solved. 
-
-```{r}
-city_homicide_df = 
+nest_glm_all <-
   homicide_df %>% 
-  select(city_state, disposition, resolution) %>% 
   group_by(city_state) %>% 
-  summarize(hom_total = n(),
-            hom_unsolved = sum(resolution == "unsolved"))
+  nest() %>% 
+  mutate(models = map(data, ~glm(resolution ~ victim_age + victim_race + victim_sex, data = ., family = binomial())),
+         models = map(models, broom::tidy, conf.int = TRUE)) %>% 
+  select(-data) %>% 
+  unnest()
+
 ```
 
-Focusing only on Baltimore, MD, I can use the `prop.test` and `broom::tidy` functions to obtain an estimate and CI of the proportion of unsolved homicides in that city. The table below shows those values.
+From these resuts, I will create a dataframe with the estimated, adjusted ORs and CIs for each city comparing unsolved cases  among non-white and white victims.
 
-```{r}
-bmore_test = 
-  prop.test(x = filter(city_homicide_df, city_state == "Baltimore, MD") %>% pull(hom_unsolved),
-            n = filter(city_homicide_df, city_state == "Baltimore, MD") %>% pull(hom_total)) 
-
-broom::tidy(bmore_test) %>% 
+```{r ORs_all_cities}
+nest_glm_all %>% 
+  mutate(OR = exp(estimate),
+         conf_low_OR = exp(conf.low),
+         conf_high_OR = exp(conf.high)) %>%
+  dplyr::select(city_state, term, OR, conf_low_OR, conf_high_OR) %>%
+  filter(term == "victim_racenon-white") %>% 
   knitr::kable(digits = 3)
 ```
 
