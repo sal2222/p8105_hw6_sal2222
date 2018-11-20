@@ -148,17 +148,34 @@ birthweight_df <-
   )
 ```
 
-There is no missing data.
+There is no missing data in the dataframe.
 
 ```{r birthweight_na_check}
 birthweight_df %>% 
   is.na() %>% summary()
-
 ```
 
-## Proposed regression model for birthweight
+## Proposed regression model for birthweight: smoking and maternal age
 
+I propose a model for birthweight based on a hypothesized structure. I am interested in seeing the effects of smoking as an environmental exposure as well as maternal age. I will examine the fit of `smoken` and `menarche` independently, jointly, and with interaction.
 
+```{r my_models_broom_tidy}
+lm(bwt ~ smoken, data = birthweight_df) %>% broom::tidy()
+lm(bwt ~ menarche, data = birthweight_df) %>% broom::tidy()
+lm(bwt ~ smoken + menarche, data = birthweight_df) %>% broom::tidy()
+lm(bwt ~ smoken + menarche + (smoken * menarche), data = birthweight_df) %>% broom::tidy()
+```
+
+```{r my_models_broom_glance}
+lm(bwt ~ smoken, data = birthweight_df) %>% broom::glance()
+lm(bwt ~ menarche, data = birthweight_df) %>% broom::glance()
+lm(bwt ~ smoken + menarche, data = birthweight_df) %>% broom::glance()
+lm(bwt ~ smoken + menarche + (smoken * menarche), data = birthweight_df) %>% broom::glance()
+```
+
+Based on parameter estimates and goodness of fit tests, I select with both average number of cigarettes smoked per day during pregnancy and mother’s age at menarche (years). There is not significant interaction between these terms.
+
+My model is: `lm(bwt ~ smoken + menarche)`.
 
 
 ## Model comparison
