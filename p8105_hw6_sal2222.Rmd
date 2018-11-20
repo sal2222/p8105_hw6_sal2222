@@ -159,6 +159,8 @@ birthweight_df %>%
 
 I propose a model for birthweight based on a hypothesized structure. I am interested in seeing the effects of smoking as an environmental exposure as well as maternal age. I will examine the fit of `smoken` and `menarche` independently, jointly, and with interaction.
 
+
+First, I will review the simple linear regression estimates and p-values.
 ```{r my_models_broom_tidy}
 lm(bwt ~ smoken, data = birthweight_df) %>% broom::tidy()
 lm(bwt ~ menarche, data = birthweight_df) %>% broom::tidy()
@@ -166,6 +168,7 @@ lm(bwt ~ smoken + menarche, data = birthweight_df) %>% broom::tidy()
 lm(bwt ~ smoken + menarche + (smoken * menarche), data = birthweight_df) %>% broom::tidy()
 ```
 
+Next, I will review model fit statistics.
 ```{r my_models_broom_glance}
 lm(bwt ~ smoken, data = birthweight_df) %>% broom::glance()
 lm(bwt ~ menarche, data = birthweight_df) %>% broom::glance()
@@ -173,26 +176,67 @@ lm(bwt ~ smoken + menarche, data = birthweight_df) %>% broom::glance()
 lm(bwt ~ smoken + menarche + (smoken * menarche), data = birthweight_df) %>% broom::glance()
 ```
 
-Based on parameter estimates and goodness of fit tests, I select with both average number of cigarettes smoked per day during pregnancy and mother’s age at menarche (years). There is not significant interaction between these terms.
+Based on considration of parameter estimate results and goodness of fit tests (including maximized adjusted R-squared and minimized AIC), I select the model with both average number of cigarettes smoked per day during pregnancy and mother’s age at menarche (years). There is not significant interaction between these terms.
 
-My model is: `lm(bwt ~ smoken + menarche)`.
+My selected model is: `lm(bwt ~ smoken + menarche)`.
+```{r}
+smoken_menarche_fit <-
+  lm(bwt ~ smoken + menarche, data = birthweight_df)
+```
+
+Below is a plot of model residuals against fitted values.
+
+```{r residuls_plot}
+
+smoken_menarche_resid <-
+  modelr::add_residuals(birthweight_df, smoken_menarche_fit)
+
+smoken_menarche_pred <-
+modelr::add_predictions(birthweight_df, smoken_menarche_fit)
+
+smoken_menarche_full <-
+  birthweight_df %>% 
+    mutate(resid = smoken_menarche_resid$resid,
+           pred = smoken_menarche_pred$pred)
+  
+smoken_menarche_full %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    title = "Proposed model residuals against fitted values",
+    x = "Predictions",
+    y = "Residuals",
+    caption = "Model: lm(bwt ~ smoken + menarche, data = birthweight_df)"
+  ) 
+
+```
+
+In this plot, the range of residuals tends to increase as the predicted birthweight increases.
+
 
 
 ## Model comparison
 
-```{r blength_gestage_model}
-lm(bwt ~ blength + gaweeks, data = birthweight_df) %>% broom::tidy()
+I will compare my model with two others.
 
+```{r blength_gestage_model}
+blength_gaweeks_fit <-
+  lm(bwt ~ blength + gaweeks, data = birthweight_df) 
+
+blength_gaweeks_fit %>% broom::tidy()
+blength_gaweeks_fit %>% broom::glance()
 
 ```
 
 
 ```{r head_length_sex_interaction_model}
+head_length_sex_fit <-
+  lm(bwt ~ bhead + blength + babysex + (bhead * blength) + (blength * babysex) + (bhead * babysex) +
+     (bhead * blength * babysex), data = birthweight_df) 
 
-lm(bwt ~ bhead + blength + babysex + (bhead * blength) + (blength * babysex) + (bhead * babysex) +
-     (bhead * blength * babysex), data = birthweight_df) %>% 
-      broom::tidy()
-
+head_length_sex_fit %>% broom::tidy()
+head_length_sex_fit %>% broom::glance()
 ```
 
 
