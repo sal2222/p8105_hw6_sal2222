@@ -24,7 +24,7 @@ theme_set(theme_bw() + theme(legend.position = "bottom"))
 
 This problem utilizes data from _The Washington Post_ on homicides in 50 U.S. cities. The code chunk below imports and cleans the data. I referred to the posted solution of Homework 5, Problem 2 for some of the data cleaning code structure and naming conventions.
 
-```{r clean_homicide}
+```{r clean_homicide, message = FALSE}
 homicide_df <- 
   read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
   mutate(
@@ -93,18 +93,44 @@ nest_glm_all <-
 
 ```
 
-From these resuts, I will create a dataframe with the estimated, adjusted ORs and CIs for each city comparing unsolved cases  among non-white and white victims.
+From these resuts, I will create a dataframe with the estimated, adjusted ORs and CIs for each city comparing unsolved cases among non-white and white victims.
 
 ```{r ORs_all_cities}
-nest_glm_all %>% 
-  mutate(OR = exp(estimate),
-         conf_low_OR = exp(conf.low),
-         conf_high_OR = exp(conf.high)) %>%
-  dplyr::select(city_state, term, OR, conf_low_OR, conf_high_OR) %>%
-  filter(term == "victim_racenon-white") %>% 
-  knitr::kable(digits = 3)
+all_city_OR <-
+  nest_glm_all %>% 
+    mutate(OR = exp(estimate),
+           conf_low_OR = exp(conf.low),
+           conf_high_OR = exp(conf.high)) %>%
+    dplyr::select(city_state, term, OR, conf_low_OR, conf_high_OR) %>%
+    filter(term == "victim_racenon-white")  
+
 ```
 
+The results are displayed as a `kable` table below.
+```{r}
+all_city_OR %>%
+   knitr::kable(digits = 3)
+```
+
+I will now plot the estimated ORs and CIs for each city.
+
+```{r OR_plot}
+
+all_city_OR %>%
+  mutate(city_state = forcats::fct_reorder(city_state, OR)) %>%
+  ggplot(aes(x = city_state, y = OR)) + 
+      geom_errorbar(aes(ymin = conf_low_OR, ymax = conf_high_OR), width = 0.2) +
+      geom_point(size = 3, shape = 21, fill = "white") + 
+  labs(
+    title = "Unsolved homicides, comparing non-white victims to white victims",
+    x = "City",
+    y = "Adjusted odds ratio",
+    caption = "Data from the Washington Post, adjusted for victim age, race, and gender."
+  ) + 
+    theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 8))
+```
+
+The results and plot indicate that the U.S. cities with the largest discrepencies in unsolved homicide case by victim race, after adjusting for victim age and gender are Boston, Omaha, Oakland, Pittsburgh, and Cincinnati. Boston also has the largest confidence interval about the adjusted OR. 
 
 
 ### Problem 2 - Birthweight data
