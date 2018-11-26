@@ -77,6 +77,8 @@ broom::tidy(fit_logistic_baltimore, conf.int = TRUE) %>%
 
 
 ```
+
+
 In Baltimore, homicides of non-white victims were 2.27 times more likely to be unsolved compared to homicides of white victims after adjusting for age and gender.
 
 ## All cities
