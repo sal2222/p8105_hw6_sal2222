@@ -29,6 +29,7 @@ This problem utilizes data from _The Washington Post_ on homicides in 50 U.S. ci
 ```{r clean_homicide, message = FALSE}
 homicide_df <- 
   read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
+  filter(victim_race != "NA") %>% 
   mutate(
     city_state = str_c(city, state, sep = ", "),
     resolution = factor(case_when(
@@ -46,7 +47,7 @@ homicide_df <-
   filter(!city_state %in% c("Tulsa, AL", "Dallas, TX", "Phoenix, AZ", "Kansas City, MO")) 
 ```
 
-I excluded cities that do not report race as well as a data entry error ("Tulsa, AL").
+I excluded cities that do not report race as well as a data entry error ("Tulsa, AL"). I also excluded 4,199 observations with `victim_race` listed as `NA`. 
 
 ## Baltimore model
 
@@ -76,6 +77,7 @@ broom::tidy(fit_logistic_baltimore, conf.int = TRUE) %>%
 
 
 ```
+In Baltimore, homicides of non-white victims were 2.27 times more likely to be unsolved compared to homicides of white victims after adjusting for age and gender.
 
 ## All cities
 
